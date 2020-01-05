@@ -9,12 +9,12 @@ class Server : public QWidget {
 
     public:
         Server();
-        void guiTinNhanChoMoiNguoi(const QString &tinNhan, QTcpSocket*socket);
+        void sendPackageForAll(const QString &package, QTcpSocket*socket);
 
     private slots:
-        void ketNoiMoi();
-        void nhanDuLieu();
-        void ngatKetNoi();
+        void newConnectFromClient();
+        void receivePackageFromClient();
+        void disconnectClient();
 
     private:
         QLabel *status;

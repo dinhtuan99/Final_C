@@ -6,20 +6,20 @@ Client::Client() {
     khungSoanThao->setEnabled(false);
 
     socket = new QTcpSocket(this);
-    connect(socket, SIGNAL(readyRead()), this, SLOT(nhanDuLieu()));
-    connect(socket, SIGNAL(connected()), this, SLOT(ketNoi()));
-    connect(socket, SIGNAL(disconnected()), this, SLOT(ngatKetNoi()));
-    connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(loiSocket(QAbstractSocket::SocketError)));
+    connect(socket, SIGNAL(readyRead()), this, SLOT(receivePackage()));
+    connect(socket, SIGNAL(connected()), this, SLOT(connectToServer()));
+    connect(socket, SIGNAL(disconnected()), this, SLOT(disconnectServer()));
+    connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(ErrSocket(QAbstractSocket::SocketError)));
 
-    connect(nutKetNoi, SIGNAL(clicked()), this, SLOT(anNutKetNoi()));
-    connect(nutGuiTin, SIGNAL(clicked()), this, SLOT(anNutGuiTin()));
-    connect(khungSoanThao, SIGNAL(returnPressed()), this, SLOT(anEnterGuiTin()));
+    connect(nutKetNoi, SIGNAL(clicked()), this, SLOT(pushConnectButton()));
+    connect(nutGuiTin, SIGNAL(clicked()), this, SLOT(pushSendButton()));
+    connect(khungSoanThao, SIGNAL(returnPressed()), this, SLOT(pushEnterButton()));
 
     size = 0;
 }
 
 // Thiet lap ket noi den may chu
-void Client::anNutKetNoi() {
+void Client::pushConnectButton() {
 
     QDialog dialog(this);
     QFormLayout form(&dialog);
@@ -63,8 +63,8 @@ void Client::anNutKetNoi() {
         socket->connectToHost(hostAddress,12399); // Ket noi toi may chu
        // socket->write(nickName);
     }
-    QByteArray goiTin;
-    QDataStream out(&goiTin, QIODevice::WriteOnly);
+    QByteArray package;
+    QDataStream out(&package, QIODevice::WriteOnly);
 
     // Chuan bi goi tin de gui di
     QString tinGuiDi = nickName;
@@ -72,16 +72,16 @@ void Client::anNutKetNoi() {
     out << (quint16) 1;
     out << tinGuiDi;
     out.device()->seek(0);
-    out << (quint16) (goiTin.size() - sizeof(quint16)-sizeof(quint16));
+    out << (quint16) (package.size() - sizeof(quint16)-sizeof(quint16));
 
-    socket->write(goiTin); // Gui goi tin
+    socket->write(package); // Gui goi tin
     qDebug()<<"11111111111";
 }
 
 // Gui tin den may chu
-void Client::anNutGuiTin() {
-    QByteArray goiTin;
-    QDataStream out(&goiTin, QIODevice::WriteOnly);
+void Client::pushSendButton() {
+    QByteArray package;
+    QDataStream out(&package, QIODevice::WriteOnly);
 
     // Chuan bi goi tin de gui di
     const QString timestamp = QDateTime::currentDateTime().toString("dd-MM hh:mm ap");
@@ -90,21 +90,20 @@ void Client::anNutGuiTin() {
     out << (quint16) 2;
     out << tinGuiDi;
     out.device()->seek(0);
-    out << (quint16) (goiTin.size() - sizeof(quint16)-sizeof(quint16));
+    out << (quint16) (package.size() - sizeof(quint16)-sizeof(quint16));
 
-    socket->write(goiTin); // Gui goi tin
+    socket->write(package); // Gui goi tin
 
     khungSoanThao ->clear(); // Xoa tin vua gui khoi khung soan thao
     khungSoanThao ->setFocus();
     cuocHoiThoai->append(tinGuiDi);
 }
 
-void Client::anEnterGuiTin() {
-    anNutGuiTin();
+void Client::pushEnterButton() {
+    pushSendButton();
 }
 
-void Client::nhanDuLieu() {
-
+void Client::receivePackage() {
     QDataStream in(socket);
     if (size == 0) {
          if (socket->bytesAvailable() < (int)sizeof(quint16)) { //Kich thuoc goi tin nho hon kich thuc kieu so nguyen
@@ -127,7 +126,7 @@ void Client::nhanDuLieu() {
 }
 
 // Slot kich hoat khi ket noi thanh cong
-void Client::ketNoi() {
+void Client::connectToServer() {
     cuocHoiThoai->append(tr("<em>Kết nối thành công !</em>"));
     nutKetNoi->setEnabled(false);
     cuocHoiThoai->setEnabled(true);
@@ -137,13 +136,13 @@ void Client::ketNoi() {
 }
 
 // Slot kich hoat khi thoat ket noi
-void Client::ngatKetNoi() {
+void Client::disconnectServer() {
     cuocHoiThoai->append(tr("<em>Tạm biệt, hẹn gặp lại sau !</em>"));
 }
 
 // Slot kich hoat khi co loi socket
-void Client::loiSocket(QAbstractSocket::SocketError loi) {
-    switch(loi) { // Hien thi thong bao khac nhau tuy theo loi gap phai
+void Client::ErrSocket(QAbstractSocket::SocketError err) {
+    switch(err) { // Hien thi thong bao khac nhau tuy theo loi gap phai
 
         case QAbstractSocket::HostNotFoundError:
             cuocHoiThoai->append(tr("<em>LỖI : Không thể kết nối tới máy chủ ! Vui lòng kiểm tra lại địa chỉ IP và cổng truy cập.</em>"));
@@ -159,6 +158,4 @@ void Client::loiSocket(QAbstractSocket::SocketError loi) {
     }
 
     nutKetNoi->setEnabled(true);
-
-
 }

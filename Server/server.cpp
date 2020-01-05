@@ -1,4 +1,4 @@
-#include "Server.h"
+#include "server.h"
 
 Server::Server () {
     // Tao va sap xep widget
@@ -22,12 +22,12 @@ Server::Server () {
         // Neu may chu duoc khoi dong thanh cong
         qDebug()<<"Máy chủ được mở trên cổng " + QString::number(server->serverPort());
         status->setText(tr("Máy chủ được mở trên cổng <strong>") + QString::number(server->serverPort()));
-        connect(server, SIGNAL(newConnection()), this, SLOT(ketNoiMoi()));
+        connect(server, SIGNAL(newConnection()), this, SLOT(newConnectFromClient()));
     }
     size = 0;
 }
 
-void Server::ketNoiMoi() {
+void Server::newConnectFromClient() {
 
     QTcpSocket *nguoiDungMoi = server->nextPendingConnection();
     // nguoiDung << nguoiDungMoi;
@@ -39,7 +39,7 @@ void Server::ketNoiMoi() {
    //s guiTinNhanChoMoiNguoi (tr("<em>Một người mới  vừa tham gia với chúng ta !</em>"),nguoiDungMoi);
 }
 
-void Server::nhanDuLieu() {
+void Server::receivePackageFromClient() {
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
     if (socket == 0) { // Neu khong xac dinh duoc nguon phat, chung ta se dung xu ly
         return;
@@ -77,7 +77,7 @@ void Server::nhanDuLieu() {
         //QTcpSocket *tempSocket = socket;
         //nguoiDung.remove(socket);
         tempSocket = socket;
-        guiTinNhanChoMoiNguoi ((name+(tr(" vừa tham gia với chúng ta !"))),socket);
+        sendPackageForAll((name+(tr(" vừa tham gia với chúng ta !"))),socket);
 
     }else{
         qDebug()<<"nhan tin nhan";
@@ -88,32 +88,32 @@ void Server::nhanDuLieu() {
         QString tinNhan;
         in >> tinNhan;
 
-        guiTinNhanChoMoiNguoi(tinNhan,socket);
+        sendPackageForAll(tinNhan,socket);
 
         // Dat lai kich thuoc la 0 de cho tin nhan tiep theo
         size = 0;
         type =0;
     }
 }
-void Server::ngatKetNoi() {
+void Server::disconnectClient() {
 
     qDebug()<<"ngat ket noi";
     // Xac dinh xem ai la nguoi ngat ket noi
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
     if (socket == 0) // Neu khong tim thay nguoi gui tin hieu thi huy bo xu ly
         return;
-    guiTinNhanChoMoiNguoi(client.key(socket)+tr("  vừa mới rời đi"),socket);
+    sendPackageForAll(client.key(socket)+tr("  vừa mới rời đi"),socket);
     //nguoiDung.removeOne(socket);
     client.remove(client.key(socket));
     socket->deleteLater();
 }
-void Server::guiTinNhanChoMoiNguoi(const QString &tinNhan,QTcpSocket *socket) {
+void Server::sendPackageForAll(const QString &package, QTcpSocket *socket) {
     // Chuan bi tin nhan gui di
     QByteArray goiTinNhan;
     QDataStream out(&goiTinNhan, QIODevice::WriteOnly);
 
     out << (quint16) 0; // Viet gia tri 0 o dau goi tin de dat truoc cho de viet kich thuoc tin nhan
-    out << tinNhan; // Viet noi dung tin nhan vao goi tin
+    out << package; // Viet noi dung tin nhan vao goi tin
     out.device()->seek(0); // Quay ve dau goi tin
     out << (quint16) (goiTinNhan.size() - sizeof(quint16)); // Thay 0 bang gia tri kich thuoc that cua tin nhan
 

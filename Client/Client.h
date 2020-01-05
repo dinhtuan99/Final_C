@@ -11,15 +11,15 @@ class Client : public QWidget, private Ui::Client {
     public:
         Client();
     private slots:
-        void anNutKetNoi();
-        void anNutGuiTin();
-        void anEnterGuiTin();
-        void nhanDuLieu();
-        void ketNoi();
-        void ngatKetNoi();
-        void loiSocket(QAbstractSocket::SocketError loi);
+        void pushConnectButton();
+        void pushSendButton();
+        void pushEnterButton();
+        void receivePackage();
+        void connectToServer();
+        void disconnectServer();
+        void ErrSocket(QAbstractSocket::SocketError err);
     private:
-        QTcpSocket *socket; // May chu
+        QTcpSocket *socket; // Server
         quint16 size;
         QString nickName;
 };
