@@ -1,9 +1,14 @@
 #include "client.h"
+#include "ui_formClient.h"
 
-Client::Client() {
-    setupUi(this);
-    cuocHoiThoai->setEnabled(false);
-    khungSoanThao->setEnabled(false);
+Client::Client(QWidget *parent)
+    : QWidget(parent)
+    , ui(new Ui::Widget)
+{
+    ui->setupUi(this);
+
+    ui->displayFrame->setEnabled(false);
+    ui->draftFrame->setEnabled(false);
 
     socket = new QTcpSocket(this);
     connect(socket, SIGNAL(readyRead()), this, SLOT(receivePackage()));
@@ -11,9 +16,9 @@ Client::Client() {
     connect(socket, SIGNAL(disconnected()), this, SLOT(disconnectServer()));
     connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(ErrSocket(QAbstractSocket::SocketError)));
 
-    connect(nutKetNoi, SIGNAL(clicked()), this, SLOT(pushConnectButton()));
-    connect(nutGuiTin, SIGNAL(clicked()), this, SLOT(pushSendButton()));
-    connect(khungSoanThao, SIGNAL(returnPressed()), this, SLOT(pushEnterButton()));
+    connect(ui->connectButton, SIGNAL(clicked()), this, SLOT(pushConnectButton()));
+    connect(ui->sendButton, SIGNAL(clicked()), this, SLOT(pushSendButton()));
+    connect(ui->draftFrame, SIGNAL(returnPressed()), this, SLOT(pushEnterButton()));
 
     size = 0;
 }
@@ -55,9 +60,9 @@ void Client::pushConnectButton() {
        const QString hostAddress = lineEditHost->text();
           nickName = lineEditNickName->text();
          // Thong bao la ket noi dang duoc thuc hien
-         cuocHoiThoai->append(tr("<em>Đang kết nối...</em>"));
+         ui->displayFrame->append(tr("<em>Đang kết nối...</em>"));
 
-         nutKetNoi->setEnabled(false);
+        ui-> connectButton->setEnabled(false);
 
          socket->abort();
         socket->connectToHost(hostAddress,12399); // Ket noi toi may chu
@@ -85,7 +90,7 @@ void Client::pushSendButton() {
 
     // Chuan bi goi tin de gui di
     const QString timestamp = QDateTime::currentDateTime().toString("dd-MM hh:mm ap");
-    QString tinGuiDi = tr("<strong>") + nickName +tr("</strong>, ") +timestamp+": "+ khungSoanThao ->text();
+    QString tinGuiDi = tr("<strong>") + nickName +tr("</strong>, ") +timestamp+": "+ ui->draftFrame ->text();
     out << (quint16) 0;
     out << (quint16) 2;
     out << tinGuiDi;
@@ -94,9 +99,13 @@ void Client::pushSendButton() {
 
     socket->write(package); // Gui goi tin
 
-    khungSoanThao ->clear(); // Xoa tin vua gui khoi khung soan thao
-    khungSoanThao ->setFocus();
-    cuocHoiThoai->append(tinGuiDi);
+    QFontDatabase fontDB;
+    fontDB.addApplicationFont(":/Users/ABC/Download/joypixels-android.ttf");
+    setFont(QFont(QStringLiteral("joypixels-android")));
+
+    ui->draftFrame ->clear(); // Xoa tin vua gui khoi khung soan thao
+    ui->draftFrame ->setFocus();
+    ui->displayFrame->append(tinGuiDi);
 }
 
 void Client::pushEnterButton() {
@@ -117,8 +126,7 @@ void Client::receivePackage() {
     }
     QString tinNhan;
     in >> tinNhan;
-
-    cuocHoiThoai->append(tinNhan);
+    ui->displayFrame->append(tinNhan);
 
     // Dat lai kich thuoc la 0 de cho tin nhan tiep theo
     size = 0;
@@ -127,17 +135,17 @@ void Client::receivePackage() {
 
 // Slot kich hoat khi ket noi thanh cong
 void Client::connectToServer() {
-    cuocHoiThoai->append(tr("<em>Kết nối thành công !</em>"));
-    nutKetNoi->setEnabled(false);
-    cuocHoiThoai->setEnabled(true);
-    khungSoanThao->setEnabled(true);
+    ui->displayFrame->append(tr("<em>Kết nối thành công !</em>"));
+    ui->connectButton->setEnabled(false);
+    ui->displayFrame->setEnabled(true);
+    ui->draftFrame->setEnabled(true);
 
 
 }
 
 // Slot kich hoat khi thoat ket noi
 void Client::disconnectServer() {
-    cuocHoiThoai->append(tr("<em>Tạm biệt, hẹn gặp lại sau !</em>"));
+    ui->displayFrame->append(tr("<em>Tạm biệt, hẹn gặp lại sau !</em>"));
 }
 
 // Slot kich hoat khi co loi socket
@@ -145,17 +153,17 @@ void Client::ErrSocket(QAbstractSocket::SocketError err) {
     switch(err) { // Hien thi thong bao khac nhau tuy theo loi gap phai
 
         case QAbstractSocket::HostNotFoundError:
-            cuocHoiThoai->append(tr("<em>LỖI : Không thể kết nối tới máy chủ ! Vui lòng kiểm tra lại địa chỉ IP và cổng truy cập.</em>"));
+            ui->displayFrame->append(tr("<em>LỖI : Không thể kết nối tới máy chủ ! Vui lòng kiểm tra lại địa chỉ IP và cổng truy cập.</em>"));
             break;
         case QAbstractSocket::ConnectionRefusedError:
-            cuocHoiThoai->append(tr("<em>LỖI : Máy chủ từ chối truy cập ! Vui lòng kiểm tra chắc chắn là máy chủ đã được khởi động. Lưu ý đồng thời lỗi địa chỉ IP và cổng truy cập.</em>"));
+            ui->displayFrame->append(tr("<em>LỖI : Máy chủ từ chối truy cập ! Vui lòng kiểm tra chắc chắn là máy chủ đã được khởi động. Lưu ý đồng thời lỗi địa chỉ IP và cổng truy cập.</em>"));
             break;
         case QAbstractSocket::RemoteHostClosedError:
-            cuocHoiThoai->append(tr("<em>LỖI : Máy chủ đã ngắt kết nối !</em>"));
+            ui->displayFrame->append(tr("<em>LỖI : Máy chủ đã ngắt kết nối !</em>"));
             break;
         default:
-            cuocHoiThoai->append(tr("<em>LỖI : ") + socket->errorString() + tr("</em>"));
+            ui->displayFrame->append(tr("<em>LỖI : ") + socket->errorString() + tr("</em>"));
     }
 
-    nutKetNoi->setEnabled(true);
+    ui->connectButton->setEnabled(true);
 }
