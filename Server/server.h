@@ -9,7 +9,7 @@ class Server : public QWidget {
 
     public:
         Server();
-        void sendPackageForAll(const QString &package, QTcpSocket*socket);
+        void sendPackageForAll(const QString &package);
 
     private slots:
         void newConnectFromClient();
@@ -18,15 +18,16 @@ class Server : public QWidget {
 
     private:
         QLabel *status;
+        QTextEdit *user;
         QPushButton *exit;
 
         QTcpServer *server;
-        //QList<QTcpSocket *> nguoiDung;
+        QList<QTcpSocket *> users;
         quint16 size;
         quint16 type;
         // QList<QString> nickName;
-         QMap<QString,QTcpSocket *> client;
-         QTcpSocket* tempSocket;
+        QMap<QString,QTcpSocket *> client;
+        QTcpSocket* tempSocket;
         QString clientSend;
 };
 

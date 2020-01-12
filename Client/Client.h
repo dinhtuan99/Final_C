@@ -23,6 +23,7 @@ private slots:
     void connectToServer();
     void disconnectServer();
     void ErrSocket(QAbstractSocket::SocketError err);
+
 private:
     QTcpSocket *socket; // Server
     quint16 size;

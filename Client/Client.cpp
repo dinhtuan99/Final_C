@@ -47,16 +47,15 @@ void Client::pushConnectButton() {
         fields << lineEditNickName;
 
 
-    // Add some standard buttons (Cancel/Ok) at the bottom of the dialog
+    // buttons (Cancel/Ok)
     QDialogButtonBox buttonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel,
                                Qt::Horizontal, &dialog);
     form.addRow(&buttonBox);
     QObject::connect(&buttonBox, SIGNAL(accepted()), &dialog, SLOT(accept()));
     QObject::connect(&buttonBox, SIGNAL(rejected()), &dialog, SLOT(reject()));
 
-    // Show the dialog as modal
+    // Mo Dialog
     if (dialog.exec() == QDialog::Accepted) {
-        // If the user didn't dismiss the dialog, do something with the fields
        const QString hostAddress = lineEditHost->text();
           nickName = lineEditNickName->text();
          // Thong bao la ket noi dang duoc thuc hien
@@ -66,21 +65,7 @@ void Client::pushConnectButton() {
 
          socket->abort();
         socket->connectToHost(hostAddress,12399); // Ket noi toi may chu
-       // socket->write(nickName);
     }
-    QByteArray package;
-    QDataStream out(&package, QIODevice::WriteOnly);
-
-    // Chuan bi goi tin de gui di
-    QString tinGuiDi = nickName;
-    out << (quint16) 0;
-    out << (quint16) 1;
-    out << tinGuiDi;
-    out.device()->seek(0);
-    out << (quint16) (package.size() - sizeof(quint16)-sizeof(quint16));
-
-    socket->write(package); // Gui goi tin
-    qDebug()<<"11111111111";
 }
 
 // Gui tin den may chu
@@ -91,21 +76,19 @@ void Client::pushSendButton() {
     // Chuan bi goi tin de gui di
     const QString timestamp = QDateTime::currentDateTime().toString("dd-MM hh:mm ap");
     QString tinGuiDi = tr("<strong>") + nickName +tr("</strong>, ") +timestamp+": "+ ui->draftFrame ->text();
+
+    if(!ui->draftFrame ->text().isEmpty()){
     out << (quint16) 0;
-    out << (quint16) 2;
     out << tinGuiDi;
     out.device()->seek(0);
-    out << (quint16) (package.size() - sizeof(quint16)-sizeof(quint16));
+
+   out << (quint16) (package.size() - sizeof(quint16));
 
     socket->write(package); // Gui goi tin
 
-    QFontDatabase fontDB;
-    fontDB.addApplicationFont(":/Users/ABC/Download/joypixels-android.ttf");
-    setFont(QFont(QStringLiteral("joypixels-android")));
-
     ui->draftFrame ->clear(); // Xoa tin vua gui khoi khung soan thao
     ui->draftFrame ->setFocus();
-    ui->displayFrame->append(tinGuiDi);
+    }
 }
 
 void Client::pushEnterButton() {
@@ -114,20 +97,20 @@ void Client::pushEnterButton() {
 
 void Client::receivePackage() {
     QDataStream in(socket);
+    qDebug()<<"nhantinnhan";
     if (size == 0) {
          if (socket->bytesAvailable() < (int)sizeof(quint16)) { //Kich thuoc goi tin nho hon kich thuc kieu so nguyen
              return;
         }
         in >> size; // Neu nhan duoc kich thuoc tin nhan thi lay ra gia tri do
     }
-    // Biet kich thuoc, chung ta se kiem tra xem da nhan duoc toan bo tin nhan chua
-    if (socket->bytesAvailable() < size) { // Neu chua nhan du tin nhan thi thoat xu ly
+    if (socket->bytesAvailable() < size) {
         return;
     }
-    QString tinNhan;
-    in >> tinNhan;
-    ui->displayFrame->append(tinNhan);
+    QString package;
+    in >> package;
 
+    ui->displayFrame->append(package);
     // Dat lai kich thuoc la 0 de cho tin nhan tiep theo
     size = 0;
 
@@ -139,7 +122,6 @@ void Client::connectToServer() {
     ui->connectButton->setEnabled(false);
     ui->displayFrame->setEnabled(true);
     ui->draftFrame->setEnabled(true);
-
 
 }
 

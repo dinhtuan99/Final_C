@@ -4,6 +4,7 @@ Server::Server () {
     // Tao va sap xep widget
     status = new QLabel();
     exit = new QPushButton(tr("Thoát"));
+    user = new QTextEdit("Chưa có người nào trong phòng");
     connect(exit, SIGNAL(clicked()), qApp, SLOT(quit()));
 
     QVBoxLayout *lop = new QVBoxLayout();
@@ -29,14 +30,14 @@ Server::Server () {
 
 void Server::newConnectFromClient() {
 
-    QTcpSocket *nguoiDungMoi = server->nextPendingConnection();
-    // nguoiDung << nguoiDungMoi;
 
-    connect(nguoiDungMoi, SIGNAL(readyRead()), this, SLOT(nhanDuLieu()));
-    //connect(nguoiDungMoi, SIGNAL(readyRead()), this, SLOT(nhanNickName()));
-    connect(nguoiDungMoi, SIGNAL(disconnected()), this, SLOT(ngatKetNoi()));
+    QTcpSocket *newUsers = server->nextPendingConnection();
+    users << newUsers;
+    qDebug()<<"aaaaaaaaa";
 
-   //s guiTinNhanChoMoiNguoi (tr("<em>Một người mới  vừa tham gia với chúng ta !</em>"),nguoiDungMoi);
+    connect(newUsers, SIGNAL(readyRead()), this, SLOT(receivePackageFromClient()));
+    connect(newUsers, SIGNAL(disconnected()), this, SLOT(disconnectClient()));
+    sendPackageForAll("Một người vừa tham gia room chat !");
 }
 
 void Server::receivePackageFromClient() {
@@ -45,56 +46,32 @@ void Server::receivePackageFromClient() {
         return;
     }
     QDataStream in(socket);
+
     if (size == 0) { //Neu chua biet kich thuoc tin nhan thi chung ta se thu tim trong goi du lieu vua toi
-        if (socket->bytesAvailable() < (int)sizeof(quint16)) { //Kich thuoc goi tin nho hon kich thuc kieu so nguyen
+        if (socket->bytesAvailable() < (int)sizeof(quint16)) {
             return;
         }
-        qDebug()<<"sucess0";
+        qDebug()<<"nhan size";
         in >> size; // Neu nhan duoc kich thuoc tin nhan thi lay ra gia tri do
         qDebug()<<size;
     }
 
-    if (type == 0) { //Neu chua biet kich thuoc tin nhan thi chung ta se thu tim trong goi du lieu vua toi
-        if (socket->bytesAvailable() < (int)sizeof(quint16)) { //Kich thuoc goi tin nho hon kich thuc kieu so nguyen
-            return;
-        }
-        qDebug()<<"nhan kieu di lieu";
-        in >> type; // Neu nhan duoc kich thuoc tin nhan thi lay ra gia tri do
-        qDebug()<<type;
-    }
-    if((quint16) type == 1){
-        if (socket->bytesAvailable() < size) { // Neu chua nhan du tin nhan thi thoat xu ly
-            return;
-        }
-        QString name;
-        in >> name;
-        //nickName.append(tinNhan);
-        client.insert(name,socket);
-
-        qDebug()<<"nhan ten";
-        type =0;
-        size = 0;
-        //QTcpSocket *tempSocket = socket;
-        //nguoiDung.remove(socket);
-        tempSocket = socket;
-        sendPackageForAll((name+(tr(" vừa tham gia với chúng ta !"))),socket);
-
-    }else{
         qDebug()<<"nhan tin nhan";
         // Biet kich thuoc, chung ta se kiem tra xem da nhan duoc toan bo tin nhan chua
-        if (socket->bytesAvailable() < size) { // Neu chua nhan du tin nhan thi thoat xu ly
+        if (socket->bytesAvailable() < size) {
             return;
         }
         QString tinNhan;
         in >> tinNhan;
 
-        sendPackageForAll(tinNhan,socket);
+        qDebug()<<tinNhan;
+
+        sendPackageForAll(tinNhan);
 
         // Dat lai kich thuoc la 0 de cho tin nhan tiep theo
         size = 0;
-        type =0;
     }
-}
+
 void Server::disconnectClient() {
 
     qDebug()<<"ngat ket noi";
@@ -102,27 +79,29 @@ void Server::disconnectClient() {
     QTcpSocket *socket = qobject_cast<QTcpSocket *>(sender());
     if (socket == 0) // Neu khong tim thay nguoi gui tin hieu thi huy bo xu ly
         return;
-    sendPackageForAll(client.key(socket)+tr("  vừa mới rời đi"),socket);
-    //nguoiDung.removeOne(socket);
+    sendPackageForAll(client.key(socket)+tr("  vừa mới rời đi"));
+
+    users.removeOne(socket);
     client.remove(client.key(socket));
+
     socket->deleteLater();
 }
-void Server::sendPackageForAll(const QString &package, QTcpSocket *socket) {
+void Server::sendPackageForAll(const QString &package) {
     // Chuan bi tin nhan gui di
     QByteArray goiTinNhan;
     QDataStream out(&goiTinNhan, QIODevice::WriteOnly);
 
-    out << (quint16) 0; // Viet gia tri 0 o dau goi tin de dat truoc cho de viet kich thuoc tin nhan
+    out << (quint16) 0;
     out << package; // Viet noi dung tin nhan vao goi tin
     out.device()->seek(0); // Quay ve dau goi tin
-    out << (quint16) (goiTinNhan.size() - sizeof(quint16)); // Thay 0 bang gia tri kich thuoc that cua tin nhan
+    out << (quint16) (goiTinNhan.size() - sizeof(quint16));
 
     // Gui tin cho tat ca nguoi dung ket noi
     QList<QTcpSocket*> values = client.values();
-    for (int i = 0; i < values.size(); i++) {
-        if(socket != values[i] )
-        values[i]->write(goiTinNhan);
+
+    qDebug()<<"length:",users.length();
+    for (int i = 0; i < users.size(); i++) {
+        users[i]->write(goiTinNhan);
     }
-   // qDebug()<<"gui tin nhan ve client tru "+nguoiDung.key(socket);
     qDebug()<<"Gui tin nhan cho moi nguoi";
 }
